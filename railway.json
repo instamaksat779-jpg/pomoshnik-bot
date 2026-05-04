@@ -1,8 +1,5 @@
 {
-  "build": {
-    "builder": "NIXPACKS"
-  },
   "deploy": {
-    "startCommand": "python bot.py"
+    "startCommand": "python /app/bot.py"
   }
 }
