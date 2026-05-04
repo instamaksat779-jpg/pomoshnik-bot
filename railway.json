@@ -1,5 +1,5 @@
 {
   "deploy": {
-    "startCommand": "python /app/bot.py"
+    "startCommand": "cd /app && ls && python bot.py"
   }
 }
