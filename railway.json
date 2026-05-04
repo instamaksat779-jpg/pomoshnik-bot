@@ -1,5 +1,5 @@
 {
   "deploy": {
-    "startCommand": "cd /app && ls && python bot.py"
+    "startCommand": "python $RAILWAY_SRC_DIR/bot.py"
   }
 }
