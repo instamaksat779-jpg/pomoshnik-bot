@@ -1,0 +1,63 @@
+import requests
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+def ask_deepseek(prompt):
+    headers = {
+        "Authorization": f"Bearer {os.getenv('DEEPSEEK_API_KEY')}",
+        "Content-Type": "application/json"
+    }
+    data = {
+        "model": "deepseek-chat",
+        "messages": [
+            {"role": "system", "content": "Ты — полезный ассистент."},
+            {"role": "user", "content": prompt}
+        ],
+        "temperature": 0.7,
+        "max_tokens": 1000
+    }
+    r = requests.post("https://api.deepseek.com/v1/chat/completions", headers=headers, json=data)
+    if r.status_code == 200:
+        return r.json()["choices"][0]["message"]["content"]
+    else:
+        return f"Ошибка DeepSeek: {r.status_code} {r.text}"
+
+def ask_gemini(prompt):
+    key = os.getenv("GEMINI_API_KEY")
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={key}"
+    headers = {"Content-Type": "application/json"}
+    data = {
+        "contents": [{"parts": [{"text": prompt}]}],
+        "generationConfig": {"temperature": 0.7, "maxOutputTokens": 1000}
+    }
+    r = requests.post(url, headers=headers, json=data)
+    if r.status_code == 200:
+        return r.json()["candidates"][0]["content"]["parts"][0]["text"]
+    else:
+        return f"Ошибка Gemini: {r.status_code} {r.text}"
+
+def full_discussion(question):
+    ans_ds = ask_deepseek(question)
+    ans_gm = ask_gemini(question)
+    
+    prompt = f"""Пользователь спросил: "{question}"
+Ответ DeepSeek: {ans_ds}
+Ответ Gemini: {ans_gm}
+Прокомментируй оба ответа: в чём каждый прав, в чём ошибается, какой ответ лучше или как их объединить. Дай краткий вердикт."""
+    
+    comm_ds = ask_deepseek(prompt)
+    comm_gm = ask_gemini(prompt)
+    
+    return f"""🔹 DeepSeek ответил:
+{ans_ds}
+
+🔹 Gemini ответил:
+{ans_gm}
+
+📝 Комментарий DeepSeek (по ответам):
+{comm_ds}
+
+📝 Комментарий Gemini (по ответам):
+{comm_gm}"""
