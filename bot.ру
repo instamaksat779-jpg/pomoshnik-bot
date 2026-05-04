@@ -1,30 +1,54 @@
 import os
 import logging
+import nest_asyncio
+nest_asyncio.apply()
 from dotenv import load_dotenv
-from telegram import Update
-from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
+from telegram import Update, ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton
+from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, CallbackQueryHandler, filters, ContextTypes
 from ai import full_discussion
 
 load_dotenv()
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 logging.basicConfig(level=logging.INFO)
 
+MENU = ReplyKeyboardMarkup([
+    [KeyboardButton("💬 Задать вопрос")],
+    [KeyboardButton("ℹ️ О боте"), KeyboardButton("🆘 Помощь")]
+], resize_keyboard=True)
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("Привет!")
+    keyboard = InlineKeyboardMarkup([
+        [InlineKeyboardButton("🚀 Поехали!", callback_data="start_bot")]
+    ])
+    await update.message.reply_text(
+        "👋 Привет! Добро пожаловать в Pomoshnik Bot!\n\n🤖 Я твой личный AI-помощник!\n\n👨‍💻 Разработчик: Макс\n\nНажми кнопку чтобы начать 👇",
+        reply_markup=keyboard
+    )
+
+async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    await query.message.reply_text("🎉 Отлично! Я готов помочь!\n\nПросто напиши мне любой вопрос!", reply_markup=MENU)
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_text = update.message.text
-    await update.message.reply_text("Думаю...")
-    response = full_discussion(user_text)
-    await update.message.reply_text(response)
+    text = update.message.text
+    if text == "ℹ️ О боте":
+        await update.message.reply_text("🤖 Pomoshnik Bot\n\nЯ AI-помощник!\n👨‍💻 Создатель: Макс\n⚡️ Работает на базе Llama 3.3", reply_markup=MENU)
+    elif text == "🆘 Помощь":
+        await update.message.reply_text("💬 Просто напиши мне любой вопрос!\n\nНапример:\n• Что такое ChatGPT?\n• Как выучить Python?\n• Расскажи анекдот", reply_markup=MENU)
+    else:
+        await update.message.reply_text("⏳ Думаю...")
+        response = full_discussion(text)
+        await update.message.reply_text(response, reply_markup=MENU)
 
 async def main():
     app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
     app.add_handler(CommandHandler("start", start))
+    app.add_handler(CallbackQueryHandler(button))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
     print("Бот запущен!")
     await app.run_polling()
 
 if __name__ == "__main__":
     import asyncio
-    asyncio.run(main())
+    asyncio.get_event_loop().run_until_complete(main())
